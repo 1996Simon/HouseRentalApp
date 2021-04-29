@@ -1,0 +1,7 @@
+{
+  "name": "HouseRentalApp",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
