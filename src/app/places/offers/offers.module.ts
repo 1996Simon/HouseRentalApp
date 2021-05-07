@@ -15,6 +15,6 @@ import { OffersPage } from './offers.page';
     IonicModule,
     OffersPageRoutingModule
   ],
-  declarations: [OffersPage]
+  declarations: [OffersPage],
 })
 export class OffersPageModule {}
