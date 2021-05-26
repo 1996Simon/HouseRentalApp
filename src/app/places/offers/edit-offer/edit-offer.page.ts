@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AlertController, LoadingController, NavController } from '@ionic/angular';
 import { Place } from '../../place.model';
 import { PlacesService } from '../../places.service';
 import { Subscription } from 'rxjs';
@@ -13,21 +13,28 @@ import { Subscription } from 'rxjs';
 })
 export class EditOfferPage implements OnInit, OnDestroy {
   place: Place;
-  form: FormGroup
+  placeId: string;
+  form: FormGroup;
+  isLoading = false;
   private placesSub: Subscription;
 
   constructor(
-    private route: ActivatedRoute, 
-    private placesService: PlacesService, 
-    private navCtrl: NavController
-    ) { }
+    private route: ActivatedRoute,
+    private placesService: PlacesService,
+    private navCtrl: NavController,
+    private router: Router,
+    private loadingCtrl: LoadingController,
+    private alertCtrl: AlertController
+  ) { }
 
   ngOnInit() {
     this.route.paramMap.subscribe(paramMap => {
-      if(!paramMap.has('placeId')) {
+      if (!paramMap.has('placeId')) {
         this.navCtrl.navigateBack('/places/tabs/offers');
         return;
       }
+      this.placeId = paramMap.get('placeId');
+      this.isLoading = true;
       this.placesSub = this.placesSub = this.placesService.getPlace(paramMap.get('placeId')).subscribe(place => {
         this.place = place;
         this.form = new FormGroup({
@@ -40,15 +47,41 @@ export class EditOfferPage implements OnInit, OnDestroy {
             validators: [Validators.required, Validators.maxLength(180)]
           }),
         })
-      });
+        this.isLoading = false;
+      },
+        error => {
+          this.alertCtrl.create({
+            header: 'An error occurred!', message: 'Place could not be loaded. Please try again later.', buttons: [{
+              text: 'Okay', handler: () => {
+                this.router.navigate(['/places/tabs/offers']);
+              }
+            }]
+          }).then(alertEl => {
+            alertEl.present();
+          })
+        }
+      );
     });
   }
 
   onUpdateOffer() {
-    if(!this.form.valid) {
+    if (!this.form.valid) {
       return;
     }
-    console.log(this.form);
+    this.loadingCtrl.create({
+      message: 'Updating place...'
+    }).then(loadingEl => {
+      loadingEl.present();
+      this.placesService.updatePlace(
+        this.place.id,
+        this.form.value.title,
+        this.form.value.description
+      ).subscribe(() => {
+        loadingEl.dismiss();
+        this.form.reset();
+        this.router.navigate(['/places/tabs/offers']);
+      });
+    });
   }
 
   ngOnDestroy() {
